@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Chatbot — YouTube, Email &amp; Messaging in one assistant</title>
+<meta name="description" content="A small, self-contained AI chatbot that searches YouTube, reads and sends Gmail, and messages Telegram, Slack and Discord. LLM-agnostic, tool-calling, zero build step." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>" />
+</head>
+<body>
+
+<!-- ───────────────────────── NAV ───────────────────────── -->
+<header class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark">◆</span>
+      <span class="brand-name">AI&nbsp;Chatbot</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#demo">Demo</a>
+      <a href="#features">Features</a>
+      <a href="#tools">Tools</a>
+      <a href="#how">How it works</a>
+      <a href="#api">API</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#quickstart">Quick start</a>
+      <a class="btn btn-primary" href="#demo">Try it live</a>
+    </div>
+    <button class="nav-burger" id="burger" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ───────────────────────── HERO ───────────────────────── -->
+<section class="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="pill"><span class="dot"></span> LLM-agnostic · tool-calling · zero build</span>
+      <h1>One assistant that actually <em>does</em> things.</h1>
+      <p class="lede">
+        Search YouTube, read and send email, and post to Telegram, Slack or Discord —
+        all from a single chat. The model decides when to call a tool, and only the
+        integrations you've configured are ever exposed.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="#demo">Try the live demo</a>
+        <a class="btn btn-outline btn-lg" href="#quickstart">Read the quick start</a>
+      </div>
+      <ul class="hero-stats">
+        <li><strong>8</strong><span>built-in tools</span></li>
+        <li><strong>5</strong><span>integrations</span></li>
+        <li><strong>0</strong><span>build steps</span></li>
+      </ul>
+    </div>
+
+    <div class="hero-visual">
+      <div class="window">
+        <div class="window-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="window-title">chat — session web-8f2a</span>
+        </div>
+        <div class="window-body" id="heroChat"></div>
+      </div>
+      <div class="float-card fc-1">
+        <span class="fc-ico">▶</span>
+        <div><strong>youtube_search</strong><small>“python asyncio tutorial”</small></div>
+      </div>
+      <div class="float-card fc-2">
+        <span class="fc-ico">✉</span>
+        <div><strong>email_send</strong><small>queued · awaiting confirm</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── DEMO ───────────────────────── -->
+<section class="section" id="demo">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Live demo</span>
+      <h2>Talk to the assistant</h2>
+      <p class="sub">
+        This demo runs entirely in your browser with a simulated agent, so you can feel the
+        tool-calling flow without any keys. Point it at the real FastAPI backend any time.
+      </p>
+    </div>
+
+    <div class="demo-shell">
+      <aside class="demo-side">
+        <div class="side-block">
+          <h4>Mode</h4>
+          <div class="segmented" id="modeSwitch">
+            <button class="seg active" data-mode="demo">Simulated</button>
+            <button class="seg" data-mode="live">Live backend</button>
+          </div>
+          <div class="field" id="backendField" hidden>
+            <label for="backendUrl">API base URL</label>
+            <input id="backendUrl" type="url" placeholder="http://127.0.0.1:8000" />
+            <small>Must expose <code>POST /api/chat</code>.</small>
+          </div>
+        </div>
+
+        <div class="side-block">
+          <h4>Try asking</h4>
+          <div class="chips" id="suggestions">
+            <button class="chip">Find a 10-minute Python asyncio tutorial on YouTube</button>
+            <button class="chip">Any unread email from my team this week?</button>
+            <button class="chip">Send "deploy is green ✅" to Slack #eng</button>
+            <button class="chip">Message the Telegram group that standup moved to 10am</button>
+            <button class="chip">What can you actually do?</button>
+          </div>
+        </div>
+
+        <div class="side-block">
+          <h4>Session</h4>
+          <div class="kv"><span>id</span><code id="sessionId">—</code></div>
+          <div class="kv"><span>model</span><code id="modelName">gpt-4o-mini</code></div>
+          <div class="kv"><span>tools</span><code id="toolCount">8</code></div>
+          <button class="btn btn-outline btn-block" id="clearBtn">Clear conversation</button>
+        </div>
+      </aside>
+
+      <div class="chat">
+        <div class="chat-head">
+          <div class="chat-id">
+            <span class="avatar">◆</span>
+            <div><strong>Assistant</strong><small id="chatStatus">simulated · ready</small></div>
+          </div>
+          <span class="badge" id="modeBadge">DEMO</span>
+        </div>
+        <div class="chat-log" id="chatLog"></div>
+        <form class="chat-form" id="chatForm">
+          <textarea id="chatInput" rows="1" placeholder="Ask about a YouTube video, your email, or send a message…"></textarea>
+          <button class="btn btn-primary" id="sendBtn" type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── FEATURES ───────────────────────── -->
+<section class="section alt" id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Features</span>
+      <h2>Small surface, sharp edges</h2>
+      <p class="sub">Everything you need to wire an LLM to real services — and nothing you don't.</p>
+    </div>
+    <div class="grid grid-3">
+      <article class="card">
+        <span class="card-ico">🧠</span>
+        <h3>LLM-agnostic</h3>
+        <p><code>gpt-4o-mini</code>, Claude, Gemini, Groq, Ollama, OpenRouter — anything
+        <a href="https://docs.litellm.ai/" target="_blank" rel="noopener">LiteLLM</a> supports. Swap models with one env var.</p>
+      </article>
+      <article class="card">
+        <span class="card-ico">🔁</span>
+        <h3>Tool-calling loop</h3>
+        <p>The model decides when to call a tool. Results are fed back into the conversation
+        until it produces a final answer — up to a configurable iteration cap.</p>
+      </article>
+      <article class="card">
+        <span class="card-ico">🛡️</span>
+        <h3>Graceful degradation</h3>
+        <p>Integrations without credentials are hidden from the model entirely, so it never
+        promises something it can't actually do.</p>
+      </article>
+      <article class="card">
+        <span class="card-ico">🔌</span>
+        <h3>Two backends</h3>
+        <p>Call provider APIs directly, or route through a local
+        <a href="https://openconnector.dev" target="_blank" rel="noopener">OpenConnector</a> runtime
+        if you've already connected the apps there.</p>
+      </article>
+      <article class="card">
+        <span class="card-ico">⚡</span>
+        <h3>Web UI + CLI</h3>
+        <p>A zero-build single-page chat interface, plus a REPL for scripting and
+        one-shot prompts from the terminal.</p>
+      </article>
+      <article class="card">
+        <span class="card-ico">🔐</span>
+        <h3>Secrets stay secret</h3>
+        <p>Credentials are read from the environment only and never logged. The server binds
+        to <code>127.0.0.1</code> by default.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── TOOLS ───────────────────────── -->
+<section class="section" id="tools">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Integrations</span>
+      <h2>Eight tools, five services</h2>
+      <p class="sub">Each one is registered only when its credentials are present.</p>
+    </div>
+
+    <div class="tools-grid">
+      <article class="tool-card">
+        <div class="tool-top"><span class="tool-ico yt">▶</span><h3>YouTube</h3></div>
+        <ul>
+          <li><code>youtube_search</code><span>Search videos</span></li>
+          <li><code>youtube_video_details</code><span>Metadata + stats</span></li>
+        </ul>
+        <p class="tool-env"><code>YOUTUBE_API_KEY</code></p>
+      </article>
+      <article class="tool-card">
+        <div class="tool-top"><span class="tool-ico gm">✉</span><h3>Gmail</h3></div>
+        <ul>
+          <li><code>email_list</code><span>Full Gmail query syntax</span></li>
+          <li><code>email_read</code><span>Read a full message</span></li>
+          <li><code>email_send</code><span>Send mail</span></li>
+        </ul>
+        <p class="tool-env"><code>GMAIL_ACCESS_TOKEN</code> · refresh trio</p>
+      </article>
+      <article class="tool-card">
+        <div class="tool-top"><span class="tool-ico tg">➤</span><h3>Telegram</h3></div>
+        <ul>
+          <li><code>telegram_send_message</code><span>Post to a chat</span></li>
+        </ul>
+        <p class="tool-env"><code>TELEGRAM_BOT_TOKEN</code></p>
+      </article>
+      <article class="tool-card">
+        <div class="tool-top"><span class="tool-ico sl">#</span><h3>Slack</h3></div>
+        <ul>
+          <li><code>slack_send_message</code><span>Post to a channel</span></li>
+        </ul>
+        <p class="tool-env"><code>SLACK_BOT_TOKEN</code></p>
+      </article>
+      <article class="tool-card">
+        <div class="tool-top"><span class="tool-ico dc">◈</span><h3>Discord</h3></div>
+        <ul>
+          <li><code>discord_send_message</code><span>Post to a channel</span></li>
+        </ul>
+        <p class="tool-env"><code>DISCORD_BOT_TOKEN</code></p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── HOW ───────────────────────── -->
+<section class="section alt" id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Architecture</span>
+      <h2>How a message flows</h2>
+      <p class="sub">A thin agent loop sits between your chat and the outside world.</p>
+    </div>
+
+    <div class="flow">
+      <div class="flow-node">
+        <span class="flow-ico">💬</span>
+        <strong>Web UI / CLI</strong>
+        <small>your message</small>
+      </div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node accent">
+        <span class="flow-ico">🔁</span>
+        <strong>Agent loop</strong>
+        <small>LiteLLM · tool calls</small>
+      </div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node">
+        <span class="flow-ico">🧰</span>
+        <strong>Tool registry</strong>
+        <small>only what's configured</small>
+      </div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node">
+        <span class="flow-ico">🌐</span>
+        <strong>Services</strong>
+        <small>YouTube · Gmail · chat</small>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step"><span class="step-n">1</span><h4>You ask</h4><p>The message is appended to the session history and sent to the model.</p></div>
+      <div class="step"><span class="step-n">2</span><h4>Model decides</h4><p>It either answers directly or emits one or more tool calls with JSON arguments.</p></div>
+      <div class="step"><span class="step-n">3</span><h4>Tools run</h4><p>Each call is dispatched to the matching integration; results go back to the model.</p></div>
+      <div class="step"><span class="step-n">4</span><h4>You get an answer</h4><p>The loop repeats until the model replies in plain language — then history is trimmed.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── QUICKSTART ───────────────────────── -->
+<section class="section" id="quickstart">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Quick start</span>
+      <h2>Running in under a minute</h2>
+      <p class="sub">Only the LLM key is required. Every integration is optional.</p>
+    </div>
+
+    <div class="code-grid">
+      <div class="code-card">
+        <div class="code-head"><span>terminal</span><button class="copy" data-copy="cmd1">Copy</button></div>
+        <pre id="cmd1"><code>cd ai-chatbot
+pip install -r requirements.txt
+
+cp .env.example .env
+# edit .env: set CHATBOT_MODEL and LLM_API_KEY
+
+python app.py        # → http://127.0.0.1:8000
+python cli.py        # …or the REPL</code></pre>
+      </div>
+      <div class="code-card">
+        <div class="code-head"><span>.env</span><button class="copy" data-copy="cmd2">Copy</button></div>
+        <pre id="cmd2"><code>CHATBOT_MODEL=gpt-4o-mini
+LLM_API_KEY=sk-…
+
+# optional integrations
+YOUTUBE_API_KEY=…
+GMAIL_ACCESS_TOKEN=…
+TELEGRAM_BOT_TOKEN=…
+SLACK_BOT_TOKEN=…
+DISCORD_BOT_TOKEN=…
+
+# or route through a local runtime
+CHATBOT_BACKEND=runtime
+OPENCONNECTOR_URL=http://localhost:3000</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── API ───────────────────────── -->
+<section class="section alt" id="api">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">HTTP API</span>
+      <h2>Five endpoints, no surprises</h2>
+      <p class="sub">The web UI is just a client of this API — build your own on top.</p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="api-table">
+        <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="m get">GET</span></td><td><code>/</code></td><td>—</td><td>Chat UI</td></tr>
+          <tr><td><span class="m get">GET</span></td><td><code>/api/health</code></td><td>—</td><td>Model, backend, configured tools</td></tr>
+          <tr><td><span class="m get">GET</span></td><td><code>/api/tools</code></td><td>—</td><td>Tools available to the model</td></tr>
+          <tr><td><span class="m post">POST</span></td><td><code>/api/chat</code></td><td><code>{"message","session_id"}</code></td><td>Send a message</td></tr>
+          <tr><td><span class="m post">POST</span></td><td><code>/api/reset</code></td><td><code>{"session_id"}</code></td><td>Clear a session</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="code-card wide">
+      <div class="code-head"><span>curl</span><button class="copy" data-copy="cmd3">Copy</button></div>
+      <pre id="cmd3"><code>curl -s localhost:8000/api/chat \
+  -H 'content-type: application/json' \
+  -d '{"message":"Find a 10-minute Python tutorial on YouTube","session_id":"demo"}'</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── CTA ───────────────────────── -->
+<section class="cta">
+  <div class="wrap cta-inner">
+    <h2>Give your assistant hands.</h2>
+    <p>Clone it, drop in a key, and start asking for real work.</p>
+    <div class="hero-actions center">
+      <a class="btn btn-primary btn-lg" href="#demo">Try the demo</a>
+      <a class="btn btn-outline btn-lg" href="#quickstart">Get the code</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <span class="brand-name">AI&nbsp;Chatbot</span>
+    </div>
+    <p class="footer-note">
+      Self-contained demo site. The bot is instructed to confirm recipients and content
+      before sending email or messages — put the server behind auth before exposing it publicly.
+    </p>
+    <nav class="footer-links">
+      <a href="#demo">Demo</a><a href="#features">Features</a><a href="#tools">Tools</a>
+      <a href="#how">How it works</a><a href="#api">API</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
